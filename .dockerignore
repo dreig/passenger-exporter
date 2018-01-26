@@ -1,0 +1,9 @@
+*
+
+!.promu.yml
+!main_test.go
+!main.go
+!Makefile
+!structs.go
+!vendor/
+!VERSION
