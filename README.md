@@ -16,7 +16,7 @@ Prometheus exporter for [Phusion Passenger](https://www.phusionpassenger.com) me
       Passenger command for querying passenger status.
       (default "passenger-status --show=xml")
   -passenger.pid-file string
-    	Optional path to a file containing the passenger/nginx PID for additional metrics.
+    	Optional path to a file containing the passenger PID for additional metrics.
   -passenger.command.timeout duration
       Timeout for passenger.command. (default 500ms)
   -web.listen-address string
