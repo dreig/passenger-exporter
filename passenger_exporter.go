@@ -90,7 +90,6 @@ type Process struct {
 	VMSize              string `xml:"vmsize"`
 	ProcessGroupID      string `xml:"process_group_id"`
 	Command             string `xml:"command"`
-	CodeRevision        string `xml:"code_revision"`
 }
 
 type Options struct {
@@ -224,7 +223,7 @@ func NewExporter(cmd string, timeout time.Duration) *Exporter {
 		procStartTime: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "proc_start_time_seconds"),
 			"Number of seconds since processor started.",
-			[]string{"name", "id", "codeRevision"},
+			[]string{"name", "id"},
 			nil,
 		),
 		procMemory: prometheus.NewDesc(
@@ -267,7 +266,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 				if startTime, err := strconv.Atoi(proc.SpawnStartTime); err == nil {
 					ch <- prometheus.MustNewConstMetric(e.procStartTime, prometheus.GaugeValue, float64(startTime/nanosecondsPerSecond),
-						sg.Name, strconv.Itoa(bucketID), proc.CodeRevision,
+						sg.Name, strconv.Itoa(bucketID),
 					)
 				}
 			}
