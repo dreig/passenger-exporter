@@ -333,7 +333,7 @@ func main() {
 
 	http.Handle(*metricsPath, prometheus.Handler())
 
-	log.Infoln("starting passenger_exporter_nginx", version.Info())
+	log.Infoln("starting passenger-exporter", version.Info())
 	log.Infoln("build context", version.BuildContext())
 	log.Infoln("listening on", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
