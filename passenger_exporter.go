@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/xml"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -128,7 +127,6 @@ const (
 )
 
 var (
-	errTimeout         = errors.New("passenger-status command timed out")
 	processIdentifiers = make(map[string]int)
 )
 
@@ -159,13 +157,13 @@ type Exporter struct {
 	procMemory        *prometheus.Desc
 }
 
-func NewExporter(cmd string, timeout time.Duration) *Exporter {
+func NewExporter(cmd string, timeout float64) *Exporter {
 	cmdComponents := strings.Split(cmd, " ")
 
 	return &Exporter{
 		cmd:     cmdComponents[0],
 		args:    cmdComponents[1:],
-		timeout: timeout,
+		timeout: time.Duration(timeout * nanosecondsPerSecond),
 		up: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "up"),
 			"Could passenger status be queried.",
@@ -285,18 +283,22 @@ func (e *Exporter) status() (*Info, error) {
 		return nil, err
 	}
 
-	errc := make(chan error, 1)
-	go func(cmd *exec.Cmd, c chan<- error) {
-		c <- cmd.Wait()
-	}(cmd, errc)
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
 
 	select {
-	case err := <-errc:
+	case <-time.After(e.timeout):
+		if err := cmd.Process.Kill(); err != nil {
+			log.Errorf("failed to kill process: %s", err)
+		}
+		err = fmt.Errorf("status command timed out after %f seconds", e.timeout.Seconds())
+		return nil, err
+	case err := <-done:
 		if err != nil {
 			return nil, err
 		}
-	case <-time.After(e.timeout):
-		return nil, errTimeout
 	}
 
 	return parseOutput(&out)
@@ -401,7 +403,7 @@ func updateProcesses(old map[string]int, processes []Process) map[string]int {
 func main() {
 	var (
 		cmd           = flag.String("passenger.command", "passenger-status --show=xml", "Passenger command for querying passenger status.")
-		timeout       = flag.Duration("passenger.command.timeout", 500*time.Millisecond, "Timeout for passenger.command.")
+		timeout       = flag.Float64("passenger.command.timeout-seconds", 0.5, "Timeout in seconds for passenger.command.")
 		pidFile       = flag.String("passenger.pid-file", "", "Optional path to a file containing the passenger PID for additional metrics.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 		listenAddress = flag.String("web.listen-address", ":9149", "Address to listen on for web interface and telemetry.")

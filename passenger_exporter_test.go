@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,13 +103,13 @@ func TestScrape(t *testing.T) {
 }
 
 func TestStatusTimeout(t *testing.T) {
-	e := NewExporter("sleep 1", time.Millisecond)
+	e := NewExporter("sleep 1", time.Millisecond.Seconds())
 	_, err := e.status()
 	if err == nil {
 		t.Fatalf("failed to timeout")
 	}
 
-	if err != errTimeout {
+	if !strings.Contains(err.Error(), "status command timed out after 0.001000 seconds") {
 		t.Fatalf("incorrect err: %v", err)
 	}
 }
@@ -238,5 +239,5 @@ func TestInsertingNewProcesses(t *testing.T) {
 }
 
 func newTestExporter() *Exporter {
-	return NewExporter("cat ./testdata/passenger_xml_output.xml", time.Second)
+	return NewExporter("cat ./testdata/passenger_xml_output.xml", time.Second.Seconds())
 }
