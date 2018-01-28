@@ -437,6 +437,15 @@ func main() {
 	prometheus.MustRegister(NewExporter(*cmd, *timeout))
 
 	http.Handle(*metricsPath, prometheus.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+             <head><title>Passenger Exporter</title></head>
+             <body>
+             <h1>Passenger Exporter</h1>
+             <p><a href='` + *metricsPath + `'>Metrics</a></p>
+             </body>
+             </html>`))
+	})
 
 	log.Infoln("Starting passenger-exporter", version.Info())
 	log.Infoln("Build context", version.BuildContext())
