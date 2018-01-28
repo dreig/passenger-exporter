@@ -33,7 +33,7 @@ func TestParsing(t *testing.T) {
 			return info
 		},
 		"parseOutput": func(t *testing.T) *Info {
-			f, err := os.Open("./testdata/passenger_xml_output.xml")
+			f, err := os.Open("./test/passenger_xml_output.xml")
 			if err != nil {
 				t.Fatalf("open xml file failed: %v", err)
 			}
@@ -85,7 +85,7 @@ func TestScrape(t *testing.T) {
 		t.Fatalf("failed to read response body: %v", err)
 	}
 
-	scrapeFixturePath := "./testdata/scrape_output.txt"
+	scrapeFixturePath := "./test/scrape_output.txt"
 	if golden {
 		idx := bytes.Index(body, []byte("# HELP passenger_app_count Number of apps."))
 		ioutil.WriteFile(scrapeFixturePath, body[idx:], 0666)
@@ -239,5 +239,5 @@ func TestInsertingNewProcesses(t *testing.T) {
 }
 
 func newTestExporter() *Exporter {
-	return NewExporter("cat ./testdata/passenger_xml_output.xml", time.Second.Seconds())
+	return NewExporter("cat ./test/passenger_xml_output.xml", time.Second.Seconds())
 }
