@@ -23,21 +23,21 @@ import (
 )
 
 type Info struct {
-	PassengerVersion        string       `xml:"passenger_version"`
-	AppCount                string       `xml:"group_count"`
-	CurrentProcessCount     string       `xml:"process_count"`
-	MaxProcessCount         string       `xml:"max"`
-	CapacityUsed            string       `xml:"capacity_used"`
-	TopLevelRequestsInQueue string       `xml:"get_wait_list_size"`
-	SuperGroups             []SuperGroup `xml:"supergroups>supergroup"`
+	PassengerVersion         string       `xml:"passenger_version"`
+	AppCount                 string       `xml:"group_count"`
+	CurrentProcessCount      string       `xml:"process_count"`
+	MaxProcessCount          string       `xml:"max"`
+	CapacityUsed             string       `xml:"capacity_used"`
+	TopLevelRequestQueueSize string       `xml:"get_wait_list_size"`
+	SuperGroups              []SuperGroup `xml:"supergroups>supergroup"`
 }
 
 type SuperGroup struct {
-	Name            string `xml:"name"`
-	State           string `xml:"state"`
-	RequestsInQueue string `xml:"get_wait_list_size"`
-	CapacityUsed    string `xml:"capacity_used"`
-	Group           Group  `xml:"group"`
+	Name             string `xml:"name"`
+	State            string `xml:"state"`
+	RequestQueueSize string `xml:"get_wait_list_size"`
+	CapacityUsed     string `xml:"capacity_used"`
+	Group            Group  `xml:"group"`
 }
 
 type Group struct {
@@ -51,7 +51,7 @@ type Group struct {
 	DisablingProcessCount string    `xml:"disabling_process_count"`
 	DisabledProcessCount  string    `xml:"disabled_process_count"`
 	CapacityUsed          string    `xml:"capacity_used"`
-	GetWaitListSize       string    `xml:"get_wait_list_size"`
+	RequestQueueSize      string    `xml:"get_wait_list_size"`
 	DisableWaitListSize   string    `xml:"disable_wait_list_size"`
 	ProcessesSpawning     string    `xml:"processes_being_spawned"`
 	LifeStatus            string    `xml:"life_status"`
@@ -142,15 +142,15 @@ type Exporter struct {
 	timeout time.Duration
 
 	// Passenger metrics.
-	up                  *prometheus.Desc
-	version             *prometheus.Desc
-	toplevelQueue       *prometheus.Desc
-	maxProcessCount     *prometheus.Desc
-	currentProcessCount *prometheus.Desc
-	appCount            *prometheus.Desc
+	up                   *prometheus.Desc
+	version              *prometheus.Desc
+	topLevelRequestQueue *prometheus.Desc
+	maxProcessCount      *prometheus.Desc
+	currentProcessCount  *prometheus.Desc
+	appCount             *prometheus.Desc
 
 	// App metrics.
-	appQueue         *prometheus.Desc
+	appRequestQueue  *prometheus.Desc
 	appProcsSpawning *prometheus.Desc
 
 	// Process metrics.
@@ -178,8 +178,8 @@ func NewExporter(cmd string, timeout time.Duration) *Exporter {
 			[]string{"version"},
 			nil,
 		),
-		toplevelQueue: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "top_level_queue"),
+		topLevelRequestQueue: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "top_level_request_queue"),
 			"Number of requests in the top-level queue.",
 			nil,
 			nil,
@@ -202,8 +202,8 @@ func NewExporter(cmd string, timeout time.Duration) *Exporter {
 			nil,
 			nil,
 		),
-		appQueue: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "app_queue"),
+		appRequestQueue: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "app_request_queue"),
 			"Number of requests in app process queues.",
 			[]string{"name"},
 			nil,
@@ -248,13 +248,13 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 	ch <- prometheus.MustNewConstMetric(e.version, prometheus.GaugeValue, 1, info.PassengerVersion)
 
-	ch <- prometheus.MustNewConstMetric(e.toplevelQueue, prometheus.GaugeValue, parseFloat(info.TopLevelRequestsInQueue))
+	ch <- prometheus.MustNewConstMetric(e.topLevelRequestQueue, prometheus.GaugeValue, parseFloat(info.TopLevelRequestQueueSize))
 	ch <- prometheus.MustNewConstMetric(e.maxProcessCount, prometheus.GaugeValue, parseFloat(info.MaxProcessCount))
 	ch <- prometheus.MustNewConstMetric(e.currentProcessCount, prometheus.GaugeValue, parseFloat(info.CurrentProcessCount))
 	ch <- prometheus.MustNewConstMetric(e.appCount, prometheus.GaugeValue, parseFloat(info.AppCount))
 
 	for _, sg := range info.SuperGroups {
-		ch <- prometheus.MustNewConstMetric(e.appQueue, prometheus.GaugeValue, parseFloat(sg.Group.GetWaitListSize), sg.Name)
+		ch <- prometheus.MustNewConstMetric(e.appRequestQueue, prometheus.GaugeValue, parseFloat(sg.Group.RequestQueueSize), sg.Name)
 		ch <- prometheus.MustNewConstMetric(e.appProcsSpawning, prometheus.GaugeValue, parseFloat(sg.Group.ProcessesSpawning), sg.Name)
 
 		// Update process identifiers map.
@@ -307,11 +307,11 @@ func (e *Exporter) status() (*Info, error) {
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.up
 	ch <- e.version
-	ch <- e.toplevelQueue
+	ch <- e.topLevelRequestQueue
 	ch <- e.maxProcessCount
 	ch <- e.currentProcessCount
 	ch <- e.appCount
-	ch <- e.appQueue
+	ch <- e.appRequestQueue
 	ch <- e.appProcsSpawning
 	ch <- e.requestsProcessed
 	ch <- e.procStartTime
