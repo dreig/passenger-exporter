@@ -245,7 +245,6 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 	ch <- prometheus.MustNewConstMetric(e.up, prometheus.GaugeValue, 1)
-
 	ch <- prometheus.MustNewConstMetric(e.version, prometheus.GaugeValue, 1, info.PassengerVersion)
 
 	ch <- prometheus.MustNewConstMetric(e.topLevelRequestQueue, prometheus.GaugeValue, parseFloat(info.TopLevelRequestQueueSize))
@@ -272,7 +271,6 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			}
 		}
 	}
-
 }
 
 func (e *Exporter) status() (*Info, error) {
