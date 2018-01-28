@@ -69,6 +69,7 @@ type Group struct {
 	LifeStatus            string    `xml:"life_status"`
 	User                  string    `xml:"user"`
 	UID                   string    `xml:"uid"`
+	Group                 string    `xml:"group"`
 	GID                   string    `xml:"gid"`
 	Default               string    `xml:"default,attr"`
 	Options               Options   `xml:"options"`
@@ -120,11 +121,14 @@ type Options struct {
 	DefaultGroup              string `xml:"default_group"`
 	IntegrationMode           string `xml:"integration_mode"`
 	RubyBinPath               string `xml:"ruby"`
+	PythonBinPath             string `xml:"python"`
+	NodeJSBinPath             string `xml:"nodejs"`
 	USTRouterAddress          string `xml:"ust_router_address"`
 	USTRouterUsername         string `xml:"ust_router_username"`
 	USTRouterPassword         string `xml:"ust_router_password"`
 	Debugger                  string `xml:"debugger"`
 	Analytics                 string `xml:"analytics"`
+	APIKey                    string `xml:"api_key"`
 	MinProcesses              string `xml:"min_processes"`
 	MaxProcesses              string `xml:"max_processes"`
 	MaxPreloaderIdleTime      string `xml:"max_preloader_idle_time"`
