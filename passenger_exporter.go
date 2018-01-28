@@ -35,100 +35,100 @@ var (
 )
 
 type Info struct {
-	CapacityUsed            string       `xml:"capacity_used"`
-	MaxProcessCount         string       `xml:"max"`
 	PassengerVersion        string       `xml:"passenger_version"`
 	AppCount                string       `xml:"group_count"`
-	TopLevelRequestsInQueue string       `xml:"get_wait_list_size"`
 	CurrentProcessCount     string       `xml:"process_count"`
+	MaxProcessCount         string       `xml:"max"`
+	CapacityUsed            string       `xml:"capacity_used"`
+	TopLevelRequestsInQueue string       `xml:"get_wait_list_size"`
 	SuperGroups             []SuperGroup `xml:"supergroups>supergroup"`
 }
 
 type SuperGroup struct {
+	Name            string `xml:"name"`
+	State           string `xml:"state"`
 	RequestsInQueue string `xml:"get_wait_list_size"`
 	CapacityUsed    string `xml:"capacity_used"`
-	State           string `xml:"state"`
 	Group           Group  `xml:"group"`
-	Name            string `xml:"name"`
 }
 
 type Group struct {
-	Environment           string    `xml:"environment"`
-	DisabledProcessCount  string    `xml:"disabled_process_count"`
-	UID                   string    `xml:"uid"`
-	GetWaitListSize       string    `xml:"get_wait_list_size"`
-	CapacityUsed          string    `xml:"capacity_used"`
 	Name                  string    `xml:"name"`
-	AppType               string    `xml:"app_type"`
-	AppRoot               string    `xml:"app_root"`
-	User                  string    `xml:"user"`
 	ComponentName         string    `xml:"component_name"`
-	LifeStatus            string    `xml:"life_status"`
+	AppRoot               string    `xml:"app_root"`
+	AppType               string    `xml:"app_type"`
+	Environment           string    `xml:"environment"`
 	UUID                  string    `xml:"uuid"`
-	Default               string    `xml:"default,attr"`
-	DisablingProcessCount string    `xml:"disabling_process_count"`
 	EnabledProcessCount   string    `xml:"enabled_process_count"`
+	DisablingProcessCount string    `xml:"disabling_process_count"`
+	DisabledProcessCount  string    `xml:"disabled_process_count"`
+	CapacityUsed          string    `xml:"capacity_used"`
+	GetWaitListSize       string    `xml:"get_wait_list_size"`
 	DisableWaitListSize   string    `xml:"disable_wait_list_size"`
-	GID                   string    `xml:"gid"`
 	ProcessesSpawning     string    `xml:"processes_being_spawned"`
+	LifeStatus            string    `xml:"life_status"`
+	User                  string    `xml:"user"`
+	UID                   string    `xml:"uid"`
+	GID                   string    `xml:"gid"`
+	Default               string    `xml:"default,attr"`
 	Options               Options   `xml:"options"`
 	Processes             []Process `xml:"processes>process"`
 }
 
 type Process struct {
-	CodeRevision        string `xml:"code_revision"`
-	Enabled             string `xml:"enabled"`
-	SpawnEndTime        string `xml:"spawn_end_time"`
-	HasMetrics          string `xml:"has_metrics"`
-	LifeStatus          string `xml:"life_status"`
-	Busyness            string `xml:"busyness"`
-	RealMemory          string `xml:"real_memory"`
+	PID                 string `xml:"pid"`
 	StickySessionID     string `xml:"sticky_session_id"`
-	PSS                 string `xml:"pss"`
-	Command             string `xml:"command"`
-	LastUsed            string `xml:"last_used"`
-	CPU                 string `xml:"cpu"`
+	GUPID               string `xml:"gupid"`
+	Concurrency         string `xml:"concurrency"`
+	Sessions            string `xml:"sessions"`
+	Busyness            string `xml:"busyness"`
+	RequestsProcessed   string `xml:"processed"`
 	SpawnerCreationTime string `xml:"spawner_creation_time"`
+	SpawnStartTime      string `xml:"spawn_start_time"`
+	SpawnEndTime        string `xml:"spawn_end_time"`
+	LastUsed            string `xml:"last_used"`
 	LastUsedDesc        string `xml:"last_used_desc"`
 	Uptime              string `xml:"uptime"`
-	Swap                string `xml:"swap"`
-	Sessions            string `xml:"sessions"`
+	LifeStatus          string `xml:"life_status"`
+	Enabled             string `xml:"enabled"`
+	HasMetrics          string `xml:"has_metrics"`
+	CPU                 string `xml:"cpu"`
 	RSS                 string `xml:"rss"`
+	PSS                 string `xml:"pss"`
 	PrivateDirty        string `xml:"private_dirty"`
-	RequestsProcessed   string `xml:"processed"`
-	ProcessGroupID      string `xml:"process_group_id"`
-	PID                 string `xml:"pid"`
-	GUPID               string `xml:"gupid"`
+	Swap                string `xml:"swap"`
+	RealMemory          string `xml:"real_memory"`
 	VMSize              string `xml:"vmsize"`
-	Concurrency         string `xml:"concurrency"`
-	SpawnStartTime      string `xml:"spawn_start_time"`
+	ProcessGroupID      string `xml:"process_group_id"`
+	Command             string `xml:"command"`
+	CodeRevision        string `xml:"code_revision"`
 }
 
 type Options struct {
-	DefaultGroup              string `xml:"default_group"`
-	RubyBinPath               string `xml:"ruby"`
-	USTRouterAddress          string `xml:"ust_router_address"`
-	USTRouterPassword         string `xml:"ust_router_password"`
+	AppRoot                   string `xml:"app_root"`
+	AppGroupName              string `xml:"app_group_name"`
+	AppType                   string `xml:"app_type"`
 	StartCommand              string `xml:"start_command"`
-	USTRouterUsername         string `xml:"ust_router_username"`
-	MaxPreloaderIdleTime      string `xml:"max_preloader_idle_time"`
+	StartupFile               string `xml:"startup_file"`
+	ProcessTitle              string `xml:"process_title"`
+	LogLevel                  string `xml:"log_level"`
+	StartTimeout              string `xml:"start_timeout"`
+	Environment               string `xml:"environment"`
 	BaseURI                   string `xml:"base_uri"`
 	SpawnMethod               string `xml:"spawn_method"`
-	AppType                   string `xml:"app_type"`
-	Environment               string `xml:"environment"`
+	DefaultUser               string `xml:"default_user"`
+	DefaultGroup              string `xml:"default_group"`
+	IntegrationMode           string `xml:"integration_mode"`
+	RubyBinPath               string `xml:"ruby"`
+	USTRouterAddress          string `xml:"ust_router_address"`
+	USTRouterUsername         string `xml:"ust_router_username"`
+	USTRouterPassword         string `xml:"ust_router_password"`
+	Debugger                  string `xml:"debugger"`
 	Analytics                 string `xml:"analytics"`
 	MinProcesses              string `xml:"min_processes"`
-	StartTimeout              string `xml:"start_timeout"`
-	AppRoot                   string `xml:"app_root"`
-	ProcessTitle              string `xml:"process_title"`
-	Debugger                  string `xml:"debugger"`
-	DefaultUser               string `xml:"default_user"`
-	MaxOutOfBandWorkInstances string `xml:"max_out_of_band_work_instances"`
 	MaxProcesses              string `xml:"max_processes"`
-	AppGroupName              string `xml:"app_group_name"`
-	StartupFile               string `xml:"startup_file"`
-	IntegrationMode           string `xml:"integration_mode"`
-	LogLevel                  string `xml:"log_level"`
+	MaxPreloaderIdleTime      string `xml:"max_preloader_idle_time"`
+	MaxOutOfBandWorkInstances string `xml:"max_out_of_band_work_instances"`
 }
 
 // Exporter collects metrics from passenger.
