@@ -108,7 +108,7 @@ func TestStatusTimeout(t *testing.T) {
 		t.Fatalf("failed to timeout")
 	}
 
-	if err != timeoutErr {
+	if err != errTimeout {
 		t.Fatalf("incorrect err: %v", err)
 	}
 }

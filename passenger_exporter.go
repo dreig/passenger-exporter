@@ -22,18 +22,6 @@ import (
 	"github.com/prometheus/common/version"
 )
 
-const (
-	namespace = "passenger"
-
-	nanosecondsPerSecond = 1000000000
-)
-
-var (
-	timeoutErr = errors.New("passenger-status command timed out")
-
-	processIdentifiers = make(map[string]int)
-)
-
 type Info struct {
 	PassengerVersion        string       `xml:"passenger_version"`
 	AppCount                string       `xml:"group_count"`
@@ -134,6 +122,16 @@ type Options struct {
 	MaxPreloaderIdleTime      string `xml:"max_preloader_idle_time"`
 	MaxOutOfBandWorkInstances string `xml:"max_out_of_band_work_instances"`
 }
+
+const (
+	namespace            = "passenger"
+	nanosecondsPerSecond = 1000000000
+)
+
+var (
+	errTimeout         = errors.New("passenger-status command timed out")
+	processIdentifiers = make(map[string]int)
+)
 
 // Exporter collects metrics from passenger.
 type Exporter struct {
@@ -301,7 +299,7 @@ func (e *Exporter) status() (*Info, error) {
 			return nil, err
 		}
 	case <-time.After(e.timeout):
-		return nil, timeoutErr
+		return nil, errTimeout
 	}
 
 	return parseOutput(&out)
