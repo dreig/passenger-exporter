@@ -233,6 +233,20 @@ func NewExporter(cmd string, timeout float64) *Exporter {
 	}
 }
 
+func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- e.up
+	ch <- e.version
+	ch <- e.topLevelRequestQueue
+	ch <- e.maxProcessCount
+	ch <- e.currentProcessCount
+	ch <- e.appCount
+	ch <- e.appRequestQueue
+	ch <- e.appProcsSpawning
+	ch <- e.requestsProcessed
+	ch <- e.procStartTime
+	ch <- e.procMemory
+}
+
 // Collect fetches the statistics from the configured passenger frontend, and
 // delivers them as Prometheus metrics. It implements prometheus.Collector.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -302,20 +316,6 @@ func (e *Exporter) status() (*Info, error) {
 	}
 
 	return parseOutput(&out)
-}
-
-func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	ch <- e.up
-	ch <- e.version
-	ch <- e.topLevelRequestQueue
-	ch <- e.maxProcessCount
-	ch <- e.currentProcessCount
-	ch <- e.appCount
-	ch <- e.appRequestQueue
-	ch <- e.appProcsSpawning
-	ch <- e.requestsProcessed
-	ch <- e.procStartTime
-	ch <- e.procMemory
 }
 
 func parseOutput(r io.Reader) (*Info, error) {
