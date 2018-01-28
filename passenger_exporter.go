@@ -21,6 +21,7 @@ import (
 	"github.com/prometheus/common/version"
 )
 
+// Info represents the info section of passenger's status.
 type Info struct {
 	PassengerVersion         string       `xml:"passenger_version"`
 	AppCount                 string       `xml:"group_count"`
@@ -31,6 +32,7 @@ type Info struct {
 	SuperGroups              []SuperGroup `xml:"supergroups>supergroup"`
 }
 
+// SuperGroup represents the super group section of passenger's status.
 type SuperGroup struct {
 	Name             string `xml:"name"`
 	State            string `xml:"state"`
@@ -39,6 +41,7 @@ type SuperGroup struct {
 	Group            Group  `xml:"group"`
 }
 
+// Group represents the group section of passenger's status.
 type Group struct {
 	Name                  string    `xml:"name"`
 	ComponentName         string    `xml:"component_name"`
@@ -63,6 +66,7 @@ type Group struct {
 	Processes             []Process `xml:"processes>process"`
 }
 
+// Process represents the process section of passenger's status.
 type Process struct {
 	PID                 string `xml:"pid"`
 	StickySessionID     string `xml:"sticky_session_id"`
@@ -91,6 +95,7 @@ type Process struct {
 	Command             string `xml:"command"`
 }
 
+// Options represents the options section of passenger's status.
 type Options struct {
 	AppRoot                   string `xml:"app_root"`
 	AppGroupName              string `xml:"app_group_name"`
@@ -157,6 +162,7 @@ type Exporter struct {
 	procMemory        *prometheus.Desc
 }
 
+// NewExporter returns an initialized exporter.
 func NewExporter(cmd string, timeout float64) *Exporter {
 	cmdComponents := strings.Split(cmd, " ")
 
@@ -166,13 +172,13 @@ func NewExporter(cmd string, timeout float64) *Exporter {
 		timeout: time.Duration(timeout * nanosecondsPerSecond),
 		up: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "up"),
-			"Could passenger status be queried.",
+			"Current health of passenger.",
 			nil,
 			nil,
 		),
 		version: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "version"),
-			"Version of passenger",
+			"Version of passenger.",
 			[]string{"version"},
 			nil,
 		),
@@ -202,7 +208,7 @@ func NewExporter(cmd string, timeout float64) *Exporter {
 		),
 		appRequestQueue: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "app_request_queue"),
-			"Number of requests in app process queues.",
+			"Number of requests in the app queue.",
 			[]string{"name"},
 			nil,
 		),
@@ -214,13 +220,13 @@ func NewExporter(cmd string, timeout float64) *Exporter {
 		),
 		requestsProcessed: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "requests_processed_total"),
-			"Number of processes served by a process.",
+			"Number of requests served by a process.",
 			[]string{"name", "id"},
 			nil,
 		),
 		procStartTime: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "proc_start_time_seconds"),
-			"Number of seconds since processor started.",
+			"Number of seconds since process started.",
 			[]string{"name", "id"},
 			nil,
 		),
@@ -233,6 +239,7 @@ func NewExporter(cmd string, timeout float64) *Exporter {
 	}
 }
 
+// Describe describes all the metrics exported by the passenger exporter.
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.up
 	ch <- e.version
@@ -247,8 +254,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.procMemory
 }
 
-// Collect fetches the statistics from the configured passenger frontend, and
-// delivers them as Prometheus metrics. It implements prometheus.Collector.
+// Collect fetches the statistics from passenger, and delivers them as
+// Prometheus metrics.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	info, err := e.status()
 	if err != nil {
@@ -431,8 +438,8 @@ func main() {
 
 	http.Handle(*metricsPath, prometheus.Handler())
 
-	log.Infoln("starting passenger-exporter", version.Info())
-	log.Infoln("build context", version.BuildContext())
-	log.Infoln("listening on", *listenAddress)
+	log.Infoln("Starting passenger-exporter", version.Info())
+	log.Infoln("Build context", version.BuildContext())
+	log.Infoln("Listening on", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
