@@ -17,8 +17,8 @@ Prometheus exporter for [Phusion Passenger](https://www.phusionpassenger.com) me
       (default "passenger-status --show=xml")
   -passenger.pid-file string
     	Optional path to a file containing the passenger PID for additional metrics.
-  -passenger.command.timeout duration
-      Timeout for passenger.command. (default 500ms)
+  -passenger.command.timeout-seconds float
+      Timeout for passenger.command. (default 0.5 seconds)
   -web.listen-address string
       Address to listen on for web interface and telemetry. (default ":9149")
   -web.telemetry-path string
