@@ -1,9 +1,8 @@
 *
 
 !.promu.yml
-!main_test.go
-!main.go
+!passenger_exporter.go
+!passenger_exporter_test.go
 !Makefile
-!structs.go
 !vendor/
 !VERSION
