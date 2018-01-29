@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/xml"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -22,19 +21,121 @@ import (
 	"github.com/prometheus/common/version"
 )
 
-const (
-	namespace = "passenger_nginx"
+// Info represents the info section of passenger's status.
+type Info struct {
+	PassengerVersion         string       `xml:"passenger_version"`
+	AppCount                 string       `xml:"group_count"`
+	CurrentProcessCount      string       `xml:"process_count"`
+	MaxProcessCount          string       `xml:"max"`
+	CapacityUsed             string       `xml:"capacity_used"`
+	TopLevelRequestQueueSize string       `xml:"get_wait_list_size"`
+	SuperGroups              []SuperGroup `xml:"supergroups>supergroup"`
+}
 
+// SuperGroup represents the super group section of passenger's status.
+type SuperGroup struct {
+	Name             string `xml:"name"`
+	State            string `xml:"state"`
+	RequestQueueSize string `xml:"get_wait_list_size"`
+	CapacityUsed     string `xml:"capacity_used"`
+	Group            Group  `xml:"group"`
+}
+
+// Group represents the group section of passenger's status.
+type Group struct {
+	Name                  string    `xml:"name"`
+	ComponentName         string    `xml:"component_name"`
+	AppRoot               string    `xml:"app_root"`
+	AppType               string    `xml:"app_type"`
+	Environment           string    `xml:"environment"`
+	UUID                  string    `xml:"uuid"`
+	EnabledProcessCount   string    `xml:"enabled_process_count"`
+	DisablingProcessCount string    `xml:"disabling_process_count"`
+	DisabledProcessCount  string    `xml:"disabled_process_count"`
+	CapacityUsed          string    `xml:"capacity_used"`
+	RequestQueueSize      string    `xml:"get_wait_list_size"`
+	DisableWaitListSize   string    `xml:"disable_wait_list_size"`
+	ProcessesSpawning     string    `xml:"processes_being_spawned"`
+	LifeStatus            string    `xml:"life_status"`
+	User                  string    `xml:"user"`
+	UID                   string    `xml:"uid"`
+	Group                 string    `xml:"group"`
+	GID                   string    `xml:"gid"`
+	Default               string    `xml:"default,attr"`
+	Options               Options   `xml:"options"`
+	Processes             []Process `xml:"processes>process"`
+}
+
+// Process represents the process section of passenger's status.
+type Process struct {
+	PID                 string `xml:"pid"`
+	StickySessionID     string `xml:"sticky_session_id"`
+	GUPID               string `xml:"gupid"`
+	Concurrency         string `xml:"concurrency"`
+	Sessions            string `xml:"sessions"`
+	Busyness            string `xml:"busyness"`
+	RequestsProcessed   string `xml:"processed"`
+	SpawnerCreationTime string `xml:"spawner_creation_time"`
+	SpawnStartTime      string `xml:"spawn_start_time"`
+	SpawnEndTime        string `xml:"spawn_end_time"`
+	LastUsed            string `xml:"last_used"`
+	LastUsedDesc        string `xml:"last_used_desc"`
+	Uptime              string `xml:"uptime"`
+	LifeStatus          string `xml:"life_status"`
+	Enabled             string `xml:"enabled"`
+	HasMetrics          string `xml:"has_metrics"`
+	CPU                 string `xml:"cpu"`
+	RSS                 string `xml:"rss"`
+	PSS                 string `xml:"pss"`
+	PrivateDirty        string `xml:"private_dirty"`
+	Swap                string `xml:"swap"`
+	RealMemory          string `xml:"real_memory"`
+	VMSize              string `xml:"vmsize"`
+	ProcessGroupID      string `xml:"process_group_id"`
+	Command             string `xml:"command"`
+}
+
+// Options represents the options section of passenger's status.
+type Options struct {
+	AppRoot                   string `xml:"app_root"`
+	AppGroupName              string `xml:"app_group_name"`
+	AppType                   string `xml:"app_type"`
+	StartCommand              string `xml:"start_command"`
+	StartupFile               string `xml:"startup_file"`
+	ProcessTitle              string `xml:"process_title"`
+	LogLevel                  string `xml:"log_level"`
+	StartTimeout              string `xml:"start_timeout"`
+	Environment               string `xml:"environment"`
+	BaseURI                   string `xml:"base_uri"`
+	SpawnMethod               string `xml:"spawn_method"`
+	DefaultUser               string `xml:"default_user"`
+	DefaultGroup              string `xml:"default_group"`
+	IntegrationMode           string `xml:"integration_mode"`
+	RubyBinPath               string `xml:"ruby"`
+	PythonBinPath             string `xml:"python"`
+	NodeJSBinPath             string `xml:"nodejs"`
+	USTRouterAddress          string `xml:"ust_router_address"`
+	USTRouterUsername         string `xml:"ust_router_username"`
+	USTRouterPassword         string `xml:"ust_router_password"`
+	Debugger                  string `xml:"debugger"`
+	Analytics                 string `xml:"analytics"`
+	APIKey                    string `xml:"api_key"`
+	MinProcesses              string `xml:"min_processes"`
+	MaxProcesses              string `xml:"max_processes"`
+	MaxPreloaderIdleTime      string `xml:"max_preloader_idle_time"`
+	MaxOutOfBandWorkInstances string `xml:"max_out_of_band_work_instances"`
+}
+
+const (
+	namespace            = "passenger"
 	nanosecondsPerSecond = 1000000000
 )
 
 var (
-	timeoutErr = errors.New("passenger-status command timed out")
-
 	processIdentifiers = make(map[string]int)
 )
 
-// Exporter collects metrics from a passenger-nginx integration.
+// Exporter collects metrics from passenger.
 type Exporter struct {
 	// binary file path for querying passenger state.
 	cmd  string
@@ -44,15 +145,15 @@ type Exporter struct {
 	timeout time.Duration
 
 	// Passenger metrics.
-	up                  *prometheus.Desc
-	version             *prometheus.Desc
-	toplevelQueue       *prometheus.Desc
-	maxProcessCount     *prometheus.Desc
-	currentProcessCount *prometheus.Desc
-	appCount            *prometheus.Desc
+	up                   *prometheus.Desc
+	version              *prometheus.Desc
+	topLevelRequestQueue *prometheus.Desc
+	maxProcessCount      *prometheus.Desc
+	currentProcessCount  *prometheus.Desc
+	appCount             *prometheus.Desc
 
 	// App metrics.
-	appQueue         *prometheus.Desc
+	appRequestQueue  *prometheus.Desc
 	appProcsSpawning *prometheus.Desc
 
 	// Process metrics.
@@ -61,27 +162,28 @@ type Exporter struct {
 	procMemory        *prometheus.Desc
 }
 
-func NewExporter(cmd string, timeout time.Duration) *Exporter {
+// NewExporter returns an initialized exporter.
+func NewExporter(cmd string, timeout float64) *Exporter {
 	cmdComponents := strings.Split(cmd, " ")
 
 	return &Exporter{
 		cmd:     cmdComponents[0],
 		args:    cmdComponents[1:],
-		timeout: timeout,
+		timeout: time.Duration(timeout * nanosecondsPerSecond),
 		up: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "up"),
-			"Could passenger status be queried.",
+			"Current health of passenger.",
 			nil,
 			nil,
 		),
 		version: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "version"),
-			"Version of passenger",
+			"Version of passenger.",
 			[]string{"version"},
 			nil,
 		),
-		toplevelQueue: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "top_level_queue"),
+		topLevelRequestQueue: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "top_level_request_queue"),
 			"Number of requests in the top-level queue.",
 			nil,
 			nil,
@@ -104,9 +206,9 @@ func NewExporter(cmd string, timeout time.Duration) *Exporter {
 			nil,
 			nil,
 		),
-		appQueue: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "app_queue"),
-			"Number of requests in app process queues.",
+		appRequestQueue: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "app_request_queue"),
+			"Number of requests in the app queue.",
 			[]string{"name"},
 			nil,
 		),
@@ -118,14 +220,14 @@ func NewExporter(cmd string, timeout time.Duration) *Exporter {
 		),
 		requestsProcessed: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "requests_processed_total"),
-			"Number of processes served by a process.",
+			"Number of requests served by a process.",
 			[]string{"name", "id"},
 			nil,
 		),
 		procStartTime: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "proc_start_time_seconds"),
-			"Number of seconds since processor started.",
-			[]string{"name", "id", "codeRevision"},
+			"Number of seconds since process started.",
+			[]string{"name", "id"},
 			nil,
 		),
 		procMemory: prometheus.NewDesc(
@@ -137,8 +239,23 @@ func NewExporter(cmd string, timeout time.Duration) *Exporter {
 	}
 }
 
-// Collect fetches the statistics from the configured passenger frontend, and
-// delivers them as Prometheus metrics. It implements prometheus.Collector.
+// Describe describes all the metrics exported by the passenger exporter.
+func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- e.up
+	ch <- e.version
+	ch <- e.topLevelRequestQueue
+	ch <- e.maxProcessCount
+	ch <- e.currentProcessCount
+	ch <- e.appCount
+	ch <- e.appRequestQueue
+	ch <- e.appProcsSpawning
+	ch <- e.requestsProcessed
+	ch <- e.procStartTime
+	ch <- e.procMemory
+}
+
+// Collect fetches the statistics from passenger, and delivers them as
+// Prometheus metrics.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	info, err := e.status()
 	if err != nil {
@@ -147,16 +264,15 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 	ch <- prometheus.MustNewConstMetric(e.up, prometheus.GaugeValue, 1)
-
 	ch <- prometheus.MustNewConstMetric(e.version, prometheus.GaugeValue, 1, info.PassengerVersion)
 
-	ch <- prometheus.MustNewConstMetric(e.toplevelQueue, prometheus.GaugeValue, parseFloat(info.TopLevelRequestsInQueue))
+	ch <- prometheus.MustNewConstMetric(e.topLevelRequestQueue, prometheus.GaugeValue, parseFloat(info.TopLevelRequestQueueSize))
 	ch <- prometheus.MustNewConstMetric(e.maxProcessCount, prometheus.GaugeValue, parseFloat(info.MaxProcessCount))
 	ch <- prometheus.MustNewConstMetric(e.currentProcessCount, prometheus.GaugeValue, parseFloat(info.CurrentProcessCount))
 	ch <- prometheus.MustNewConstMetric(e.appCount, prometheus.GaugeValue, parseFloat(info.AppCount))
 
 	for _, sg := range info.SuperGroups {
-		ch <- prometheus.MustNewConstMetric(e.appQueue, prometheus.GaugeValue, parseFloat(sg.Group.GetWaitListSize), sg.Name)
+		ch <- prometheus.MustNewConstMetric(e.appRequestQueue, prometheus.GaugeValue, parseFloat(sg.Group.RequestQueueSize), sg.Name)
 		ch <- prometheus.MustNewConstMetric(e.appProcsSpawning, prometheus.GaugeValue, parseFloat(sg.Group.ProcessesSpawning), sg.Name)
 
 		// Update process identifiers map.
@@ -168,13 +284,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 				if startTime, err := strconv.Atoi(proc.SpawnStartTime); err == nil {
 					ch <- prometheus.MustNewConstMetric(e.procStartTime, prometheus.GaugeValue, float64(startTime/nanosecondsPerSecond),
-						sg.Name, strconv.Itoa(bucketID), proc.CodeRevision,
+						sg.Name, strconv.Itoa(bucketID),
 					)
 				}
 			}
 		}
 	}
-
 }
 
 func (e *Exporter) status() (*Info, error) {
@@ -189,35 +304,25 @@ func (e *Exporter) status() (*Info, error) {
 		return nil, err
 	}
 
-	errc := make(chan error, 1)
-	go func(cmd *exec.Cmd, c chan<- error) {
-		c <- cmd.Wait()
-	}(cmd, errc)
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
 
 	select {
-	case err := <-errc:
+	case <-time.After(e.timeout):
+		if err := cmd.Process.Kill(); err != nil {
+			log.Errorf("failed to kill process: %s", err)
+		}
+		err = fmt.Errorf("status command timed out after %f seconds", e.timeout.Seconds())
+		return nil, err
+	case err := <-done:
 		if err != nil {
 			return nil, err
 		}
-	case <-time.After(e.timeout):
-		return nil, timeoutErr
 	}
 
 	return parseOutput(&out)
-}
-
-func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	ch <- e.up
-	ch <- e.version
-	ch <- e.toplevelQueue
-	ch <- e.maxProcessCount
-	ch <- e.currentProcessCount
-	ch <- e.appCount
-	ch <- e.appQueue
-	ch <- e.appProcsSpawning
-	ch <- e.requestsProcessed
-	ch <- e.procStartTime
-	ch <- e.procMemory
 }
 
 func parseOutput(r io.Reader) (*Info, error) {
@@ -305,8 +410,8 @@ func updateProcesses(old map[string]int, processes []Process) map[string]int {
 func main() {
 	var (
 		cmd           = flag.String("passenger.command", "passenger-status --show=xml", "Passenger command for querying passenger status.")
-		timeout       = flag.Duration("passenger.command.timeout", 500*time.Millisecond, "Timeout for passenger.command.")
-		pidFile       = flag.String("passenger.pid-file", "", "Optional path to a file containing the passenger/nginx PID for additional metrics.")
+		timeout       = flag.Float64("passenger.command.timeout-seconds", 0.5, "Timeout in seconds for passenger.command.")
+		pidFile       = flag.String("passenger.pid-file", "", "Optional path to a file containing the passenger PID for additional metrics.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 		listenAddress = flag.String("web.listen-address", ":9149", "Address to listen on for web interface and telemetry.")
 	)
@@ -332,9 +437,18 @@ func main() {
 	prometheus.MustRegister(NewExporter(*cmd, *timeout))
 
 	http.Handle(*metricsPath, prometheus.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+             <head><title>Passenger Exporter</title></head>
+             <body>
+             <h1>Passenger Exporter</h1>
+             <p><a href='` + *metricsPath + `'>Metrics</a></p>
+             </body>
+             </html>`))
+	})
 
-	log.Infoln("starting passenger_exporter_nginx", version.Info())
-	log.Infoln("build context", version.BuildContext())
-	log.Infoln("listening on", *listenAddress)
+	log.Infoln("Starting passenger-exporter", version.Info())
+	log.Infoln("Build context", version.BuildContext())
+	log.Infoln("Listening on", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }

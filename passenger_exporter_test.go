@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ func TestParsing(t *testing.T) {
 			return info
 		},
 		"parseOutput": func(t *testing.T) *Info {
-			f, err := os.Open("./testdata/passenger_xml_output.xml")
+			f, err := os.Open("./test/passenger_xml_output.xml")
 			if err != nil {
 				t.Fatalf("open xml file failed: %v", err)
 			}
@@ -84,9 +85,9 @@ func TestScrape(t *testing.T) {
 		t.Fatalf("failed to read response body: %v", err)
 	}
 
-	scrapeFixturePath := "./testdata/scrape_output.txt"
+	scrapeFixturePath := "./test/scrape_output.txt"
 	if golden {
-		idx := bytes.Index(body, []byte("# HELP passenger_nginx_app_count Number of apps."))
+		idx := bytes.Index(body, []byte("# HELP passenger_app_count Number of apps."))
 		ioutil.WriteFile(scrapeFixturePath, body[idx:], 0666)
 		t.Skipf("--golden passed: re-writing %s", scrapeFixturePath)
 	}
@@ -102,13 +103,13 @@ func TestScrape(t *testing.T) {
 }
 
 func TestStatusTimeout(t *testing.T) {
-	e := NewExporter("sleep 1", time.Millisecond)
+	e := NewExporter("sleep 1", time.Millisecond.Seconds())
 	_, err := e.status()
 	if err == nil {
 		t.Fatalf("failed to timeout")
 	}
 
-	if err != timeoutErr {
+	if !strings.Contains(err.Error(), "status command timed out after 0.001000 seconds") {
 		t.Fatalf("incorrect err: %v", err)
 	}
 }
@@ -238,5 +239,5 @@ func TestInsertingNewProcesses(t *testing.T) {
 }
 
 func newTestExporter() *Exporter {
-	return NewExporter("cat ./testdata/passenger_xml_output.xml", time.Second)
+	return NewExporter("cat ./test/passenger_xml_output.xml", time.Second.Seconds())
 }
