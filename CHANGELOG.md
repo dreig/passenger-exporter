@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+### Bug Fixes
+* Include correct files in the docker build.
+
 ## 0.5.0
 
 ### Improvements
