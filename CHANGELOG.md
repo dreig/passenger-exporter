@@ -3,6 +3,7 @@
 ## 0.6.0
 
 * Run as user `nobody` and group `nogroup` instead of `root`.
+* Update Go to `v1.9.4`.
 
 ## 0.5.1
 
