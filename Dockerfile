@@ -1,6 +1,6 @@
 FROM ruby:2.4.3-alpine3.7
 
-ARG GOLANG_VERSION="1.9.2-r1"
+ARG GOLANG_VERSION="1.9.4-r0"
 ARG BUILD_DEPS="go=$GOLANG_VERSION ruby-dev linux-headers curl curl-dev pcre-dev libexecinfo-dev@edge-main"
 ARG RUNTIME_DEPS="tini build-base pcre git libexecinfo@edge-main"
 
