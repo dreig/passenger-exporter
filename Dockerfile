@@ -47,7 +47,7 @@ RUN promu build && \
 RUN apk del $BUILD_PACKAGES && \
     rm -rf /var/cache/apk/*
 
-USER nobody:nogroup
+USER nobody:nobody
 
 ENTRYPOINT ["tini", "--", "passenger-exporter"]
 CMD ["/bin/sh"]
