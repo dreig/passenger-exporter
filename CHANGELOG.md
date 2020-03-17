@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+### Bug Fixes
+* Prevent index out of range panics when passenger processes are killed.
+
 ## 0.7.0
 
 * Change group to `nobody` instead of `nogroup`.
