@@ -115,23 +115,26 @@ func TestStatusTimeout(t *testing.T) {
 }
 
 type updateProcessSpec struct {
-	name      string
-	input     map[string]int
-	processes []Process
-	output    map[string]int
+	name         string
+	input        map[string]int
+	processes    []Process
+	maxProcesses int
+	output       map[string]int
 }
 
 func newUpdateProcessSpec(
 	name string,
 	input map[string]int,
 	processes []Process,
+	maxProcesses int,
 ) updateProcessSpec {
 	s := updateProcessSpec{
-		name:      name,
-		input:     input,
-		processes: processes,
+		name:         name,
+		input:        input,
+		processes:    processes,
+		maxProcesses: maxProcesses,
 	}
-	s.output = updateProcesses(s.input, s.processes)
+	s.output = updateProcesses(s.input, s.processes, s.maxProcesses)
 	return s
 }
 
@@ -145,6 +148,7 @@ func TestUpdateProcessIdentifiers(t *testing.T) {
 				Process{PID: "cdf"},
 				Process{PID: "dfe"},
 			},
+			3,
 		),
 		newUpdateProcessSpec(
 			"1:1",
@@ -158,6 +162,7 @@ func TestUpdateProcessIdentifiers(t *testing.T) {
 				Process{PID: "cdf"},
 				Process{PID: "dfe"},
 			},
+			6,
 		),
 		newUpdateProcessSpec(
 			"increase processes",
@@ -174,6 +179,7 @@ func TestUpdateProcessIdentifiers(t *testing.T) {
 				Process{PID: "jkl"},
 				Process{PID: "lmn"},
 			},
+			9,
 		),
 		newUpdateProcessSpec(
 			"reduce processes",
@@ -190,6 +196,33 @@ func TestUpdateProcessIdentifiers(t *testing.T) {
 				Process{PID: "cdf"},
 				Process{PID: "dfe"},
 			},
+			3,
+		),
+		newUpdateProcessSpec(
+			"first process killed",
+			map[string]int{
+				"abc": 0,
+				"cdf": 1,
+				"dfe": 2,
+			},
+			[]Process{
+				Process{PID: "cdf"},
+				Process{PID: "dfe"},
+			},
+			3,
+		),
+		newUpdateProcessSpec(
+			"second process killed",
+			map[string]int{
+				"abc": 0,
+				"cdf": 1,
+				"dfe": 2,
+			},
+			[]Process{
+				Process{PID: "abc"},
+				Process{PID: "dfe"},
+			},
+			3,
 		),
 	} {
 		if len(spec.output) != len(spec.processes) {
@@ -202,7 +235,7 @@ func TestUpdateProcessIdentifiers(t *testing.T) {
 			}
 		}
 
-		newOutput := updateProcesses(spec.output, spec.processes)
+		newOutput := updateProcesses(spec.output, spec.processes, spec.maxProcesses)
 		if !reflect.DeepEqual(newOutput, spec.output) {
 			t.Fatalf("case %s: updateProcesses is not idempotent", spec.name)
 		}
@@ -224,6 +257,7 @@ func TestInsertingNewProcesses(t *testing.T) {
 			Process{PID: "newPID"},
 			Process{PID: "newPID2"},
 		},
+		6,
 	)
 
 	if len(spec.output) != len(spec.processes) {
