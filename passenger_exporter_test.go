@@ -196,7 +196,7 @@ func TestUpdateProcessIdentifiers(t *testing.T) {
 				Process{PID: "cdf"},
 				Process{PID: "dfe"},
 			},
-			3,
+			6,
 		),
 		newUpdateProcessSpec(
 			"first process killed",
