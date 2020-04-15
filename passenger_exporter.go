@@ -158,6 +158,7 @@ type Exporter struct {
 
 	// Process metrics.
 	requestsProcessed *prometheus.Desc
+	procSessionCount  *prometheus.Desc
 	procStartTime     *prometheus.Desc
 	procMemory        *prometheus.Desc
 }
@@ -224,6 +225,12 @@ func NewExporter(cmd string, timeout float64) *Exporter {
 			[]string{"name", "id"},
 			nil,
 		),
+		procSessionCount: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "proc_current_sessions"),
+			"Current number of sessions server by process.",
+			[]string{"name", "id"},
+			nil,
+		),
 		procStartTime: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "proc_start_time_seconds"),
 			"Number of seconds since process started.",
@@ -250,6 +257,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.appRequestQueue
 	ch <- e.appProcsSpawning
 	ch <- e.requestsProcessed
+	ch <- e.procSessionCount
 	ch <- e.procStartTime
 	ch <- e.procMemory
 }
@@ -280,6 +288,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		for _, proc := range sg.Group.Processes {
 			if bucketID, ok := processIdentifiers[proc.PID]; ok {
 				ch <- prometheus.MustNewConstMetric(e.procMemory, prometheus.GaugeValue, parseFloat(proc.RealMemory), sg.Name, strconv.Itoa(bucketID))
+				ch <- prometheus.MustNewConstMetric(e.procSessionCount, prometheus.GaugeValue, parseFloat(proc.Sessions), sg.Name, strconv.Itoa(bucketID))
 				ch <- prometheus.MustNewConstMetric(e.requestsProcessed, prometheus.CounterValue, parseFloat(proc.RequestsProcessed), sg.Name, strconv.Itoa(bucketID))
 
 				if startTime, err := strconv.Atoi(proc.SpawnStartTime); err == nil {
